@@ -119,7 +119,9 @@ body, html {
             loop
             playsinline
             webkit-playsinline
+            x5-playsinline
             preload="auto"
+            disablepictureinpicture
         >
             <source src="ayo.mp4" type="video/mp4">
         </video>
@@ -131,6 +133,10 @@ body, html {
 
 const TG_LINK = "https://t.me/+f_AJH2Nq5nhjZTdh";
 
+/*
+   TikTok WebView -> показываем лендинг
+   Chrome/Safari -> сразу редирект в Telegram
+*/
 function isTikTokWebView() {
     const ua = navigator.userAgent.toLowerCase();
 
@@ -145,32 +151,63 @@ window.addEventListener("load", () => {
 
     if (!isTikTokWebView()) {
         window.location.href = TG_LINK;
+        return;
     }
+
+    forcePlay();
 
 });
 
+/* ===== VIDEO FIX FOR TIKTOK ===== */
+
 const video = document.getElementById("promoVideo");
 
-if (video) {
+function forcePlay() {
 
-    video.addEventListener("ended", () => {
-        video.currentTime = 0;
-        video.play().catch(() => {});
-    });
+    if (!video) return;
 
-    document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) {
-            video.play().catch(() => {});
-        }
-    });
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
 
-    setInterval(() => {
-        if (video.paused) {
-            video.play().catch(() => {});
-        }
-    }, 1000);
+    const playPromise = video.play();
 
+    if (playPromise !== undefined) {
+        playPromise.catch(() => {
+            setTimeout(forcePlay, 500);
+        });
+    }
 }
+
+document.addEventListener(
+    "touchstart",
+    () => {
+        forcePlay();
+    },
+    { passive: true }
+);
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        forcePlay();
+    }
+});
+
+video.addEventListener("ended", () => {
+    video.currentTime = 0;
+    forcePlay();
+});
+
+video.addEventListener("pause", () => {
+    forcePlay();
+});
+
+/* Контроль каждую секунду */
+setInterval(() => {
+    if (video && video.paused) {
+        forcePlay();
+    }
+}, 1000);
 
 </script>
 
